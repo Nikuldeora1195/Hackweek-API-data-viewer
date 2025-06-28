@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dog Image Gallery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+    <h1 class="text-3xl font-bold mb-4">Dog Image Gallery</h1>
+    <div class="mb-4 flex space-x-2">
+        <input id="breedFilter" type="text" placeholder="Filter by breed (e.g., labrador)" class="p-2 border rounded">
+        <button id="refreshBtn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Refresh Images</button>
+    </div>
+    <div id="dogGallery" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+    <script>
+        async function fetchDogImages(count = 5) {
+            try {
+                const response = await fetch(`https://dog.ceo/api/breeds/image/random/${count}`);
+                const data = await response.json();
+                return data.message;
+            } catch (error) {
+                console.error('Error fetching dog images:', error);
+                return [];
+            }
+        }
+
+        async function fetchBreeds() {
+            try {
+                const response = await fetch('https://dog.ceo/api/breeds/list/all');
+                const data = await response.json();
+                return Object.keys(data.message);
+            } catch (error) {
+                console.error('Error fetching breeds:', error);
+                return [];
+            }
+        }
+
+        function displayImages(images) {
+            const gallery = document.getElementById('dogGallery');
+            gallery.innerHTML = '';
+            images.forEach(image => {
+                const breed = image.split('/')[4] || 'Unknown';
+                const imgElement = document.createElement('div');
+                imgElement.className = 'bg-white p-4 rounded shadow';
+                imgElement.innerHTML = `
+                    <img src="${image}" alt="Dog" class="w-full h-48 object-cover rounded mb-2">
+                    <p class="text-center capitalize">${breed}</p>
+                `;
+                gallery.appendChild(imgElement);
+            });
+        }
+
+        async function loadImages() {
+            const images = await fetchDogImages();
+            displayImages(images);
+        }
+
+        async function filterImages() {
+            const filter = document.getElementById('breedFilter').value.trim().toLowerCase();
+            if (!filter) {
+                loadImages();
+                return;
+            }
+            try {
+                const response = await fetch(`https://dog.ceo/api/breed/${filter}/images/random/5`);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    displayImages(data.message);
+                } else {
+                    document.getElementById('dogGallery').innerHTML = '<p class="text-red-500">Breed not found!</p>';
+                }
+            } catch (error) {
+                document.getElementById('dogGallery').innerHTML = '<p class="text-red-500">Error fetching breed images!</p>';
+            }
+        }
+
+        document.getElementById('refreshBtn').addEventListener('click', () => {
+            document.getElementById('breedFilter').value = '';
+            loadImages();
+        });
+
+        document.getElementById('breedFilter').addEventListener('input', filterImages);
+
+        // Initial load
+        loadImages();
+    </script>
+</body>
+</html>
